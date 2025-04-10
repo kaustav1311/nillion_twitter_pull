@@ -1,6 +1,6 @@
-import os
-import requests
-import json
+# scripts/fetch_tweets.py
+
+import os, requests, json
 from datetime import datetime
 
 BEARER_TOKEN = os.getenv("TWITTER_BEARER")
@@ -20,10 +20,10 @@ def get_latest_tweets(user_id, count=3):
     url = f"https://api.twitter.com/2/users/{user_id}/tweets"
     params = {
         "max_results": count,
-        "tweet.fields": "created_at,attachments,referenced_tweets,in_reply_to_user_id",
+        "tweet.fields": "created_at,attachments,referenced_tweets",
         "expansions": "attachments.media_keys",
         "media.fields": "url,preview_image_url,type",
-        "exclude": "replies"
+         "exclude": "replies"
     }
     res = requests.get(url, headers=headers, params=params)
     res.raise_for_status()
@@ -40,6 +40,11 @@ def save_as_json(api_response, username):
     output = []
 
     for tweet in tweets:
+        # Skip retweets
+        if "referenced_tweets" in tweet:
+            if any(ref["type"] == "retweeted" for ref in tweet["referenced_tweets"]):
+                continue
+
         tweet_media = []
         if "attachments" in tweet:
             for key in tweet["attachments"].get("media_keys", []):
@@ -50,8 +55,8 @@ def save_as_json(api_response, username):
                     tweet_media.append(media_item.get("preview_image_url"))
 
         output.append({
-            "id": tweet["id"],
             "date": tweet["created_at"][:10],
+            "source": "twitter",
             "author": f"@{username}",
             "text": tweet["text"],
             "link": f"https://twitter.com/{username}/status/{tweet['id']}",
