@@ -16,7 +16,7 @@ def get_user_id(username):
     res.raise_for_status()
     return res.json()['data']['id']
 
-def get_latest_tweets(user_id, count=5):
+def get_latest_tweets(user_id, count=3):
     url = f"https://api.twitter.com/2/users/{user_id}/tweets"
     params = {
         "max_results": count,
