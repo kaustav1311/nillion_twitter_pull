@@ -16,14 +16,13 @@ def get_user_id(username):
     res.raise_for_status()
     return res.json()['data']['id']
 
-def get_latest_tweets(user_id, count=3):
+def get_latest_tweets(user_id, count=10):  # Fetch more, filter later
     url = f"https://api.twitter.com/2/users/{user_id}/tweets"
     params = {
         "max_results": count,
-        "tweet.fields": "created_at,attachments,referenced_tweets",
+        "tweet.fields": "created_at,attachments,referenced_tweets,in_reply_to_user_id",
         "expansions": "attachments.media_keys",
-        "media.fields": "url,preview_image_url,type",
-         "exclude": "replies"
+        "media.fields": "url,preview_image_url,type"
     }
     res = requests.get(url, headers=headers, params=params)
     res.raise_for_status()
@@ -45,6 +44,10 @@ def save_as_json(api_response, username):
             if any(ref["type"] == "retweeted" for ref in tweet["referenced_tweets"]):
                 continue
 
+        # Skip replies
+        if tweet.get("in_reply_to_user_id") is not None:
+            continue
+
         tweet_media = []
         if "attachments" in tweet:
             for key in tweet["attachments"].get("media_keys", []):
@@ -55,6 +58,7 @@ def save_as_json(api_response, username):
                     tweet_media.append(media_item.get("preview_image_url"))
 
         output.append({
+            "id": tweet["id"],
             "date": tweet["created_at"][:10],
             "source": "twitter",
             "author": f"@{username}",
@@ -62,6 +66,9 @@ def save_as_json(api_response, username):
             "link": f"https://twitter.com/{username}/status/{tweet['id']}",
             "media": tweet_media
         })
+
+        if len(output) >= 3:  # Stop after collecting 3 usable tweets
+            break
 
     os.makedirs("public/community_feed", exist_ok=True)
     with open(output_path, "w") as f:
