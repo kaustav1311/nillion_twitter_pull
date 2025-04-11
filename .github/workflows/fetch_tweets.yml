@@ -2,7 +2,7 @@ name: Fetch Daily Tweets
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Daily at 6AM UTC
+    - cron: '0 22 * * *'  # Daily at 10PM UTC
   workflow_dispatch:
 
 jobs:
